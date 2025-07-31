@@ -96,25 +96,25 @@ echo.
 if not exist ".env" (
     echo [INFO] Criando arquivo de configuração .env...
     echo.
-    (
-        echo # Chaves de API de Inteligência Artificial
-        echo GEMINI_API_KEY=AIzaSyBQ7K-wDIURnZFUNBaKQXYHTto7LSI3jF4
-        echo OPENAI_API_KEY=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
-        echo HUGGINGFACE_API_KEY=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
-        echo.
-        echo # Chaves de API dos Serviços de Busca
-        echo GOOGLE_SEARCH_KEY=AIzaSyDwIFvCvailaG6B7xtysujm0djJn1zlx18
-        echo GOOGLE_CSE_ID=c207a51dd04f9488a
-        echo SERPER_API_KEY=e9b24d4c32b1ac9aee129cd78abdef1e37db12d5
-        echo JINA_API_KEY=jina_d080053353b847259addd96fea8f35c7sEg1KIqZSlQ5-zk5AA_0eZPEWhNW
-        echo SCRAPINGANT_API_KEY=eeead289a2cd45cda43c45d012265fce
-        echo SECRET_KEY=DGD851F8DGhgfhgf_fdsfewn543534_arqv30_enhanced_2024
-        echo GROQ_API_KEY=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
-        echo.
-        echo # Configurações do Servidor
-        echo PORT=3001
-        echo NODE_ENV=development
-    ) > .env
+    
+    echo # Chaves de API de Inteligência Artificial > .env
+    echo GEMINI_API_KEY=AIzaSyBQ7K-wDIURnZFUNBaKQXYHTto7LSI3jF4 >> .env
+    echo OPENAI_API_KEY=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 >> .env
+    echo HUGGINGFACE_API_KEY=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 >> .env
+    echo. >> .env
+    echo # Chaves de API dos Serviços de Busca >> .env
+    echo GOOGLE_SEARCH_KEY=AIzaSyDwIFvCvailaG6B7xtysujm0djJn1zlx18 >> .env
+    echo GOOGLE_CSE_ID=c207a51dd04f9488a >> .env
+    echo SERPER_API_KEY=e9b24d4c32b1ac9aee129cd78abdef1e37db12d5 >> .env
+    echo JINA_API_KEY=jina_d080053353b847259addd96fea8f35c7sEg1KIqZSlQ5-zk5AA_0eZPEWhNW >> .env
+    echo SCRAPINGANT_API_KEY=eeead289a2cd45cda43c45d012265fce >> .env
+    echo SECRET_KEY=DGD851F8DGhgfhgf_fdsfewn543534_arqv30_enhanced_2024 >> .env
+    echo GROQ_API_KEY=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 >> .env
+    echo. >> .env
+    echo # Configurações do Servidor >> .env
+    echo PORT=3001 >> .env
+    echo NODE_ENV=development >> .env
+    
     echo [✓] Arquivo .env criado com chaves de API pré-configuradas
 ) else (
     echo [✓] Arquivo .env já existe
