@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Brain, Target, Search, FileText, Zap, Users, TrendingUp, Clock, Shield, Award } from 'lucide-react';
+import AuthWrapper from './components/AuthWrapper';
+import { auth } from './lib/supabase';
 import Dashboard from './components/Dashboard';
 import AnalysisForm from './components/AnalysisForm';
 import ReportViewer from './components/ReportViewer';
@@ -15,6 +17,7 @@ interface AnalysisState {
 
 function App() {
   const [activeTab, setActiveTab] = useState('analysis');
+  const [user, setUser] = useState<any>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [analysisState, setAnalysisState] = useState<AnalysisState>({
     phase: 'IDLE',
@@ -24,6 +27,18 @@ function App() {
   });
 
   useEffect(() => {
+    // Carregar perfil do usuário
+    const loadUserProfile = async () => {
+      try {
+        const profile = await auth.getCurrentUserProfile();
+        setUser(profile);
+      } catch (error) {
+        console.error('Erro ao carregar perfil:', error);
+      }
+    };
+
+    loadUserProfile();
+
     // Conectar ao WebSocket quando componente montar
     const websocket = new WebSocket('ws://localhost:3001');
     
@@ -100,6 +115,7 @@ function App() {
   ];
 
   return (
+    <AuthWrapper>
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <header className="bg-black/20 backdrop-blur-xl border-b border-white/10">
@@ -120,6 +136,12 @@ function App() {
             </div>
             
             <div className="flex items-center space-x-4">
+              {user && (
+                <div className="text-right mr-4">
+                  <div className="text-sm text-purple-300">Bem-vindo</div>
+                  <div className="text-white font-medium">{user.full_name || user.email}</div>
+                </div>
+              )}
               <div className="text-right">
                 <div className="text-sm text-purple-300">Status do Sistema</div>
                 <div className="flex items-center space-x-2">
@@ -127,6 +149,12 @@ function App() {
                   <span className="text-white text-sm">Online</span>
                 </div>
               </div>
+              <button
+                onClick={() => auth.signOut()}
+                className="px-3 py-1 bg-red-600/20 border border-red-400/30 rounded text-red-300 hover:bg-red-600/30 transition-colors text-sm"
+              >
+                Sair
+              </button>
             </div>
           </div>
         </div>
@@ -297,6 +325,7 @@ function App() {
         </div>
       </footer>
     </div>
+    </AuthWrapper>
   );
 }
 

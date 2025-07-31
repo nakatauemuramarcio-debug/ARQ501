@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Send, Sparkles, Target, Users, Briefcase, AlertCircle } from 'lucide-react';
+import { analysisService } from '../lib/supabase';
 
 interface AnalysisFormProps {
   onSubmit: (data: any) => void;
@@ -22,9 +23,29 @@ const AnalysisForm: React.FC<AnalysisFormProps> = ({ onSubmit }) => {
     setIsLoading(true);
     
     try {
-      await onSubmit(formData);
+      // Criar análise no Supabase
+      const analysis = await analysisService.create({
+        product_name: formData.product,
+        target_audience: formData.target,
+        competitors: formData.competitors,
+        additional_details: formData.details,
+        analysis_type: formData.analysisType,
+        priority: formData.urgency,
+        status: 'processing',
+        progress: 0,
+        current_phase: 'initialization'
+      });
+
+      // Passar o ID da análise para o WebSocket
+      const formDataWithId = {
+        ...formData,
+        analysisId: analysis.id
+      };
+
+      await onSubmit(formDataWithId);
     } catch (error) {
       console.error('Erro ao iniciar análise:', error);
+      alert('Erro ao iniciar análise. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

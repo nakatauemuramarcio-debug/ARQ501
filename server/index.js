@@ -4,12 +4,19 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { v4 as uuidv4 } from 'uuid';
 import { OpenAI } from 'openai';
+import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import fetch from 'node-fetch';
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
+
+// Configuração do Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL || 'https://your-project.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-role-key'
+);
 
 app.use(cors());
 app.use(express.json());
@@ -102,10 +109,19 @@ wss.on('connection', (ws) => {
 });
 
 // Função principal de análise psicológica
-async function processAnalysis(ws, { product, target, competitors, details }) {
-  const analysisId = uuidv4();
+async function processAnalysis(ws, { product, target, competitors, details, analysisId }) {
   
   try {
+    // Atualizar status no Supabase
+    await supabase
+      .from('analyses')
+      .update({ 
+        status: 'processing',
+        current_phase: 'INITIALIZATION',
+        progress: 5 
+      })
+      .eq('id', analysisId);
+
     // Fase 1: Inicialização
     ws.send(JSON.stringify({
       type: 'PROGRESS_UPDATE',
@@ -122,6 +138,14 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
       message: 'Coletando inteligência de mercado...'
     }));
 
+    await supabase
+      .from('analyses')
+      .update({ 
+        current_phase: 'DATA_COLLECTION',
+        progress: 15 
+      })
+      .eq('id', analysisId);
+
     const marketData = await collectMarketData(competitors);
 
     // Fase 3: Análise de IA Multi-Provider
@@ -131,6 +155,14 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
       progress: 35,
       message: 'Analisando com múltiplas IAs...'
     }));
+
+    await supabase
+      .from('analyses')
+      .update({ 
+        current_phase: 'AI_ANALYSIS',
+        progress: 35 
+      })
+      .eq('id', analysisId);
 
     const aiAnalysis = await performMultiAIAnalysis(product, target, marketData);
 
@@ -142,7 +174,30 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
       message: 'Identificando gatilhos psicológicos...'
     }));
 
+    await supabase
+      .from('analyses')
+      .update({ 
+        current_phase: 'MENTAL_DRIVERS',
+        progress: 55 
+      })
+      .eq('id', analysisId);
+
     const mentalDrivers = await analyzeMentalDrivers(aiAnalysis, target);
+
+    // Salvar drivers no banco
+    for (const driver of mentalDrivers) {
+      await supabase
+        .from('mental_drivers')
+        .insert({
+          analysis_id: analysisId,
+          driver_name: driver.name,
+          driver_category: driver.category || 'Geral',
+          trigger_phrase: driver.trigger,
+          activation_phrase: driver.activation,
+          effectiveness_score: driver.effectiveness || 85,
+          examples: driver.examples || []
+        });
+    }
 
     // Fase 5: Engenharia Anti-Objeção
     ws.send(JSON.stringify({
@@ -154,6 +209,31 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
 
     const objectionMap = await analyzeObjections(target, details);
 
+    // Salvar objeções no banco
+    for (const objection of objectionMap.primary) {
+      await supabase
+        .from('objections')
+        .insert({
+          analysis_id: analysisId,
+          objection_type: objection.type,
+          objection_content: objection.content,
+          frequency_percentage: objection.frequency,
+          is_hidden: false
+        });
+    }
+
+    for (const objection of objectionMap.hidden) {
+      await supabase
+        .from('objections')
+        .insert({
+          analysis_id: analysisId,
+          objection_type: objection.type,
+          objection_content: objection.content,
+          frequency_percentage: objection.frequency,
+          is_hidden: true
+        });
+    }
+
     // Fase 6: Sistema PROVI
     ws.send(JSON.stringify({
       type: 'PROGRESS_UPDATE',
@@ -163,6 +243,21 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
     }));
 
     const proviSystem = await generatePROVIs(product, mentalDrivers);
+
+    // Salvar sistemas PROVI no banco
+    for (const provi of proviSystem) {
+      await supabase
+        .from('provi_systems')
+        .insert({
+          analysis_id: analysisId,
+          provi_name: provi.name,
+          concept: provi.concept,
+          materials: provi.materials,
+          execution_steps: provi.execution,
+          impact_level: provi.impact,
+          memorability_score: 85
+        });
+    }
 
     // Fase 7: Relatório Final
     ws.send(JSON.stringify({
@@ -182,6 +277,33 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
       marketData
     });
 
+    // Salvar relatório no banco
+    await supabase
+      .from('reports')
+      .insert({
+        analysis_id: analysisId,
+        executive_summary: finalReport.executive_summary,
+        psychological_analysis: finalReport.psychological_analysis,
+        objection_framework: finalReport.objection_framework,
+        provi_system: finalReport.provi_system,
+        market_intelligence: finalReport.market_intelligence,
+        implementation_roadmap: finalReport.implementation_roadmap,
+        success_metrics: finalReport.success_metrics,
+        full_report_json: finalReport
+      });
+
+    // Atualizar análise como concluída
+    await supabase
+      .from('analyses')
+      .update({ 
+        status: 'completed',
+        progress: 100,
+        quality_score: finalReport.quality_score,
+        word_count: finalReport.word_count,
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', analysisId);
+
     // Finalização
     ws.send(JSON.stringify({
       type: 'ANALYSIS_COMPLETE',
@@ -191,6 +313,15 @@ async function processAnalysis(ws, { product, target, competitors, details }) {
     }));
 
   } catch (error) {
+    // Atualizar status de erro no banco
+    await supabase
+      .from('analyses')
+      .update({ 
+        status: 'error',
+        current_phase: 'ERROR'
+      })
+      .eq('id', analysisId);
+
     ws.send(JSON.stringify({
       type: 'ERROR',
       message: `Erro na análise: ${error.message}`
